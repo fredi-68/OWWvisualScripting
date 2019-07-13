@@ -22,17 +22,17 @@ You can visit the projects repo here: https://github.com/arxenix/owws-documentat
 
 # Known Problems
 
--Can't delete connections between nodes
--Deleting nodes will probably crash the application
--Text is spilling out of frames everywhere
--No saving/loading
--Can't navigate viewport
--Colors will probably make your eyes bleed
--Search is slow
--Some parameters currently require manual typing
--No string building (yet)
--No array building (yet)
--No taskbar icon
--Probably looks ass on anything not full HD
--Can't see lines while dragging
--Not actually useful for any serious project
+ -Can't delete connections between nodes
+ -Deleting nodes will probably crash the application
+ -Text is spilling out of frames everywhere
+ -No saving/loading
+ -Can't navigate viewport
+ -Colors will probably make your eyes bleed
+ -Search is slow
+ -Some parameters currently require manual typing
+ -No string building (yet)
+ -No array building (yet)
+ -No taskbar icon
+ -Probably looks ass on anything not full HD
+ -Can't see lines while dragging
+ -Not actually useful for any serious project
