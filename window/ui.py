@@ -448,7 +448,7 @@ class NumberField(TextField):
         """Override this method to implement character filtering.
         Returns True if the entered character is valid."""
 
-        return character in ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".")
+        return character in ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "-") #this is so bad
 
 class PasswordField(TextField):
 
