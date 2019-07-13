@@ -18,7 +18,12 @@ loop = asyncio.get_event_loop()
 
 #setLayoutDebugMode(True)
 
-App = window.ApplicationHandle(loop=loop)
+if "--fix-window-size" in sys.argv:
+    size = [1920, 1080]
+else:
+    size = None
+
+App = window.ApplicationHandle(size, loop=loop)
 App.setDisplayFlags(pygame.NOFRAME)
 App.setDisplayFlags(window.SDLFlags.CENTER_WINDOW, "1")
 App.setDisplayCaption("Overwatch Visual Scripting Editor - Untitled")
