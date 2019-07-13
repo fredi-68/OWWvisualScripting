@@ -389,7 +389,7 @@ class RuleBlock(Block):
             "{",
             "\tevent",
             "\t{",
-            "\t\t%s;" % self.parameters[0].value,
+            "\t\t%s;" % self.parameters[0].value
             ]
         if self.parameters[0].value != "Ongoing - Global":
             code.append("%s;" % self.parameters[1].value)
@@ -400,7 +400,7 @@ class RuleBlock(Block):
             "",
             "\tconditions",
             "\t{"
-            ]
+            ])
 
         code.extend(map(lambda x: "\t\t%s" % x, conditions))
         code.extend([
