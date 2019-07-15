@@ -2363,7 +2363,7 @@
             "description": "Whether the comparison of the two inputs is true.",
             "args": [
                 {
-                    "name": "VALUE",
+                    "name": "VALUE_A",
                     "description": "The left-hand side of the comparison. This may be any value type if the operation is == or !=. Otherwise, real numbers are expected.",
                     "type": "ANY",
                     "default": "NUMBER"
@@ -2375,7 +2375,7 @@
                     "default": "=="
                 },
                 {
-                    "name": "VALUE",
+                    "name": "VALUE_B",
                     "description": "The right-hand side of the comparison. This may be any value type if the operation is == or !=. Otherwise, real numbers are expected.",
                     "type": "ANY",
                     "default": "NUMBER"
