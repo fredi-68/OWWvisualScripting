@@ -2,6 +2,7 @@ import os
 import sys
 import asyncio
 import logging
+import argparse
 
 import pygame
 import window
@@ -10,16 +11,25 @@ from window.window import setLayoutDebugMode, EVENT_APP_STARTED
 import ui
 import graph
 
-logging.basicConfig(level=logging.DEBUG)
+parser = argparse.ArgumentParser()
+parser.add_argument("--fix-window-size", action="store_true", default=False, required=False)
+parser.add_argument("--verbose", "-v", action="store_true", default=False, required=False)
+parser.add_argument("--debug-layout", action="store_true", default=False, required=False)
+
+args = parser.parse_args()
+
+log_level = logging.DEBUG if args.verbose else logging.WARN
+logging.basicConfig(level=log_level)
 
 pygame.init()
 
 loop = asyncio.get_event_loop()
 
-#setLayoutDebugMode(True)
+if args.debug_layout:
+    setLayoutDebugMode(True)
 
 #fml
-if "--fix-window-size" in sys.argv:
+if args.fix_window_size:
     size = [1920, 1080]
 else:
     size = None

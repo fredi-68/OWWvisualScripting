@@ -6,7 +6,7 @@ import pygame.gfxdraw
 from window import Window
 from window.window import postEvent
 from window.components import Background, Image, VerticalGradient, Text
-from window.ui import Button, ListBox, TextField, NumberField, DropDownField
+from window.ui import Button, ListBox, TextField, NumberField, DropDownField, Menu
 
 from graph import *
 
@@ -46,7 +46,7 @@ class ButtonClose(Button):
 
     async def onButtonHit(self, event):
 
-        postEvent(pygame.USEREVENT, {"name":"quit"})
+        postEvent(pygame.USEREVENT, {"name": "quit"})
 
 class WindowBar(Window):
 
@@ -138,22 +138,29 @@ class BlockWrapperSocket(Window):
                 await self.parent.parent.stopDrawing(self)
                 return True
 
-class BlockWrapperHeader(Window):
+class BlockWrapperHeader(Menu):
 
-    def __init__(self, text, color):
+    def __init__(self, text, color, min_width=0):
 
         self.text = Text([10, 0], text, size=30)
-        super().__init__([0, 0], self.text.width, self.text.height)
+        width = max(self.text.width, min_width)
+        super().__init__([0, 0], width, self.text.height)
         self.addObject(self.text)
-        self.bg = Background([0, 0], self.width+20, self.height, color)
+        self.bg = Background([0, 0], width + 20, self.height, color)
         self.addObject(self.bg)
         self.addObject(self.text)
+
+    async def onMenuSelect(self, entry):
+        
+        pass
 
     async def onMouseButtonDown(self, event):
 
         if event.button == 1:
             await self.parent.startFocusing()
             return True
+        elif event.button == 3:
+            await self.showMenu(["Delete", "Configure..."])
 
 class _NumField(NumberField):
 
@@ -196,7 +203,7 @@ class _DropDown(DropDownField):
 class BlockWrapper(Window):
 
     """
-    Displays an action or value block.
+    Displays a block in the graph.
     """
 
     COLORS = {
@@ -221,7 +228,12 @@ class BlockWrapper(Window):
 
     def __init__(self, pos, block):
 
-        self.header = BlockWrapperHeader(block.name, self.COLORS[block.TYPE.value])
+        #If we have a rule block, we can set the minimum header size immediately since we know exactly how much space we need for each value
+        min_width = 200 if block.TYPE == BlockType.RULE else 0
+        #Otherwise, if a block specifies a minimum width, use that instead
+        if hasattr(block, "min_width"):
+            min_width = max(min_width, block.min_width)
+        self.header = BlockWrapperHeader(block.name, self.COLORS[block.TYPE.value], min_width)
         width = self.header.width + 20
         s_height = self.SOCKET_PADDING * 2 + self.SOCKET_SIZE
         param_offset = 50 * len(block.parameters)
@@ -324,7 +336,7 @@ class BlockDrawerCont(Window):
 
         self._entries = []
 
-    def createBlockList(self, wsjson):
+    def createBlockList(self, wsjson, custom):
 
         for i in self._entries:
             self.removeObject(i)
@@ -348,6 +360,15 @@ class BlockDrawerCont(Window):
                 self.ENTRY_PADDING,
                 self._lastIndex * (self.ENTRY_HEIGHT + self.ENTRY_PADDING * 2) + self.ENTRY_PADDING
                 ], self.width - self.ENTRY_PADDING * 2, self.ENTRY_HEIGHT, value, BlockType.VALUE)
+            self._entries.append(entry)
+            self.addObject(entry)
+            self._lastIndex += 1
+
+        for block in custom:
+            entry = BlockDrawerEntry([
+                self.ENTRY_PADDING,
+                self._lastIndex * (self.ENTRY_HEIGHT + self.ENTRY_PADDING * 2) + self.ENTRY_PADDING
+                ], self.width - self.ENTRY_PADDING * 2, self.ENTRY_HEIGHT, {"name": block.NAME, "class": block}, block.TYPE)
             self._entries.append(entry)
             self.addObject(entry)
             self._lastIndex += 1
@@ -392,12 +413,13 @@ class BlockDrawer(Window):
         self.addObject(self.search_entry)
 
         self.wsjson = loadWorkshopJSON()
-        self.container.createBlockList(self.wsjson)
+        self.custom = loadCustomBlocks()
+        self.container.createBlockList(self.wsjson, self.custom)
 
     def filter(self, search):
 
         if not search:
-            return self.wsjson
+            return self.wsjson, self.custom
 
         actions = []
         for action in self.wsjson["actions"]:
@@ -409,14 +431,19 @@ class BlockDrawer(Window):
             if search in value["name"].lower():
                 values.append(value)
 
-        return {"actions": actions, "values": values}
+        custom = []
+        for block in self.custom:
+            if search in block.NAME.lower():
+                custom.append(block)
+
+        return ({"actions": actions, "values": values}, custom)
 
     async def onKeystroke(self, event):
 
         if event.key == pygame.K_RETURN:
             text = self.search_entry.getText()
             await self.search_entry.text.setText("")
-            self.container.createBlockList(self.filter(text))
+            self.container.createBlockList(*self.filter(text))
             await self.container.draw()
 
 class GraphViewer(Window):
@@ -447,6 +474,14 @@ class GraphViewer(Window):
     async def createNewBlock(self, type, data, dnd):
 
         self.dnd = dnd
+
+        if data.get("class") is not None:
+            self.logger.debug("Creating new custom block...")
+            block = data["class"]()
+            wrap = BlockWrapper(pygame.mouse.get_pos(), block)
+            await dnd.startFocusing(wrap, self)
+            return
+
         if type == BlockType.RULE:
             self.logger.debug("Creating new rule block...")
             block = RuleBlock("New Rule", EventType.GLOBAL)
@@ -468,6 +503,7 @@ class GraphViewer(Window):
             block = ConditionBlock()
             wrap = BlockWrapper(pygame.mouse.get_pos(), block)
             await dnd.startFocusing(wrap, self)
+
 
     def addObject(self, obj):
 

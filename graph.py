@@ -1,15 +1,54 @@
 import logging
 import pathlib
 import json
+import importlib
+import importlib.util
 from enum import Enum
 
 WORKSHOP_JSON_PATH = pathlib.Path("./res/workshop.json")
+CUSTOM_BLOCKS_PATH = pathlib.Path("./custom_blocks/")
 
 def loadWorkshopJSON():
 
     with open(WORKSHOP_JSON_PATH, "r") as f:
         d = json.load(f)
     return d
+
+def loadCustomBlocks():
+
+    logger = logging.getLogger("graph.BlockLoader")
+
+    blocks = []
+
+    logger.debug("Loading custom blocks...")
+    for path in CUSTOM_BLOCKS_PATH.iterdir():
+        if path.suffix == ".py":
+            spec = importlib.util.spec_from_file_location("custom_block", str(path))
+            
+            if spec is None:
+                logger.warn("Unable to create module spec from file, something is wrong with the importer.")
+                continue
+
+            module = importlib.util.module_from_spec(spec)
+            try:
+                spec.loader.exec_module(module)
+            except Exception as e:
+                logger.warn("Failed to load custom block '%s': %s" % (str(path), str(e)))
+                continue
+
+            namespace = dir(module)
+            for name in namespace:
+                cls = getattr(module, name)
+                try:
+                    if issubclass(cls, (ValueBlock, ActionBlock)) and not cls in (ValueBlock, ActionBlock):
+                        logger.debug("Loaded custom block '%s'." % name)
+                        blocks.append(cls)
+                except TypeError:
+                    pass
+
+    logger.debug("Finished.")
+
+    return blocks
 
 class BlockType(Enum):
 
@@ -173,12 +212,14 @@ class Block():
     """
 
     TYPE = BlockType.NONE
+    NAME = "Untitled Block"
 
     logger = logging.getLogger("Block.Generic")
 
     def __init__(self):
 
         self.name = "Untitled Block"
+        self.min_width = 0
         self.inputs = {}
         self.outputs = {}
         self.parameters = []
@@ -193,6 +234,10 @@ class Block():
 
         output.block = self
         self.outputs[output.name] = output
+
+    def addParameter(self, parameter):
+
+        self.parameters.append(parameter)
 
     def connectInput(self, input, output, other):
 
@@ -270,6 +315,9 @@ class ActionBlock(Block):
 
     def evaluate(self):
 
+        if self.__class__ != ActionBlock:
+            raise TypeError("Subclasses of ActionBlock MUST override evaluate() !")
+
         #Since this contains the "previous" link, we need to filter for values
         inputs = [i for i in self.inputs.values() if i.type == ConnectionType.VALUE]
         arg_list = []
@@ -325,6 +373,9 @@ class ValueBlock(Block):
         return ValueBlock(name, inputs, Output(None, "out", ConnectionType.VALUE), params, order)
 
     def evaluate(self):
+
+        if self.__class__ != ValueBlock:
+            raise TypeError("Subclasses of ValueBlock MUST override evaluate() !")
 
         #TODO: add support for array inputs
         arg_list = []
